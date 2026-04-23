@@ -1,3 +1,7 @@
+const supabase = window.supabase.createClient(
+  'https://cebieleodpdxqevfvrlf.supabase.co',
+  'sb_publishable_3XWErEMgohJ1rSZF4AxCmQ_6EMyFTrK'
+);
 const STORAGE_KEY = "net-worth-navigator-v1";
 const EQUITY_REFRESH_INTERVAL_MS = 60000;
 const QUOTE_PROXY_BASE_URL = "https://corsproxy.io/?url=";
