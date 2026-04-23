@@ -1,8 +1,139 @@
 const supabase = window.supabase.createClient(
-  'https://cebieleodpdxqevfvrlf.supabase.co',
-  'sb_publishable_3XWErEMgohJ1rSZF4AxCmQ_6EMyFTrK'
+  "https://cebieleodpdxqevfvrlf.supabase.co",
+  "sb_publishable_3XWErEMgohJ1rSZF4AxCmQ_6EMyFTrK"
 );
+
 const STORAGE_KEY = "net-worth-navigator-v1";
+
+let state = structuredClone(defaultState);
+let currentSupabaseRowId = null;
+
+async function initializeApp() {
+  wireEvents();
+
+  const loadedState = await loadAppState();
+
+  state = loadedState;
+  render();
+
+  scheduleEquityRefresh();
+  void refreshEquityQuotes();
+  void refreshEquityNews();
+}
+
+async function loadAppState() {
+  try {
+    const { data, error } = await supabase
+      .from("net_worth")
+      .select("*")
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (error) {
+      console.error("Supabase load error:", error);
+      return loadStateFromLocalFallback();
+    }
+
+    if (!data) {
+      console.log("No Supabase row found, using local/default state");
+      return loadStateFromLocalFallback();
+    }
+
+    currentSupabaseRowId = data.id || null;
+
+    const rawState = data.data ?? data;
+    const normalized = normalizeLoadedState(rawState);
+
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(normalized));
+    return normalized;
+  } catch (error) {
+    console.error("Unexpected Supabase load failure:", error);
+    return loadStateFromLocalFallback();
+  }
+}
+
+function loadStateFromLocalFallback() {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+
+    if (!stored) {
+      return structuredClone(defaultState);
+    }
+
+    return normalizeLoadedState(JSON.parse(stored));
+  } catch (error) {
+    console.error("Local fallback load failed:", error);
+    return structuredClone(defaultState);
+  }
+}
+
+function normalizeLoadedState(parsed) {
+  const defaultClone = structuredClone(defaultState);
+  const parsedAssets = Array.isArray(parsed.assets) ? parsed.assets : [];
+  const assets = shouldReplaceSeedAssets(parsedAssets) ? defaultClone.assets : parsedAssets;
+  const spending = Array.isArray(parsed.spending) ? parsed.spending : defaultClone.spending;
+  const equities = Array.isArray(parsed.equities)
+    ? normalizeEquities(parsed.equities)
+    : defaultClone.equities;
+  const parsedCashflow = parsed.cashflow || {};
+
+  return {
+    ...defaultClone,
+    ...parsed,
+    assets,
+    equities,
+    spending,
+    cashflow: normalizeCashflow(parsedCashflow, spending),
+    history: normalizeHistory(
+      Array.isArray(parsed.history) ? parsed.history : defaultClone.history
+    ),
+    projection: normalizeProjection({
+      ...defaultClone.projection,
+      ...(parsed.projection || {}),
+    }),
+  };
+}
+
+async function saveToSupabase() {
+  const payload = {
+    data: state,
+    updated_at: new Date().toISOString(),
+  };
+
+  try {
+    if (currentSupabaseRowId) {
+      const { error } = await supabase
+        .from("net_worth")
+        .update(payload)
+        .eq("id", currentSupabaseRowId);
+
+      if (error) {
+        throw error;
+      }
+    } else {
+      const { data, error } = await supabase
+        .from("net_worth")
+        .insert(payload)
+        .select("id")
+        .single();
+
+      if (error) {
+        throw error;
+      }
+
+      currentSupabaseRowId = data.id;
+    }
+  } catch (error) {
+    console.error("Supabase save failed:", error);
+  }
+}
+
+function persistAndRender() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  void saveToSupabase();
+  render();
+}
 const EQUITY_REFRESH_INTERVAL_MS = 60000;
 const QUOTE_PROXY_BASE_URL = "https://corsproxy.io/?url=";
 const QUOTE_PROXY_FALLBACK_BASE_URL = "https://api.allorigins.win/raw?url=";
