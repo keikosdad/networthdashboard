@@ -1,4 +1,4 @@
-window.supabaseClient = window.supabase.createClient(...)
+window.supabaseClient = window.supabase.createClient(
   "https://cebieleodpdxqevfvrlf.supabase.co",
   "sb_publishable_3XWErEMgohJ1rSZF4AxCmQ_6EMyFTrK"
 );
@@ -103,7 +103,7 @@ async function saveToSupabase() {
 
   try {
     if (currentSupabaseRowId) {
-      const { error } = await supabase
+      const { error } = await window.supabaseClient
         .from("net_worth")
         .update(payload)
         .eq("id", currentSupabaseRowId);
@@ -112,7 +112,7 @@ async function saveToSupabase() {
         throw error;
       }
     } else {
-      const { data, error } = await supabase
+      const { data, error } = await window.supabaseClient
         .from("net_worth")
         .insert(payload)
         .select("id")
