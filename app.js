@@ -238,7 +238,7 @@ async function loadFromSupabase() {
     return;
   }
 
-  state = data.data;
+  state = data.data || data;
   render();
 }
 
