@@ -5,9 +5,6 @@ window.supabaseClient = window.supabase.createClient(
 
 const STORAGE_KEY = "net-worth-navigator-v1";
 
-let state = structuredClone(defaultState);
-let currentSupabaseRowId = null;
-
 async function initializeApp() {
   wireEvents();
 
@@ -353,6 +350,9 @@ const defaultState = {
     inflationRate: 2.5,
   },
 };
+
+let state = structuredClone(defaultState);
+let currentSupabaseRowId = null;
 
 let draggedSpendId = null;
 let draggedAssetId = null;
