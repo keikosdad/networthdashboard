@@ -223,7 +223,26 @@ const defaultState = {
   },
 };
 
-let state = loadState();
+let state = structuredClone(defaultState);
+
+async function loadFromSupabase() {
+  const { data, error } = await supabase
+    .from('net_worth')
+    .select('*')
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .single();
+
+  if (error || !data) {
+    console.log("No Supabase data, using defaults");
+    return;
+  }
+
+  state = data.data;
+  render();
+}
+
+loadFromSupabase();
 let draggedSpendId = null;
 let draggedAssetId = null;
 let equityRefreshTimer = null;
