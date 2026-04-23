@@ -427,15 +427,7 @@ const projectionInputs = {
   inflationRate: document.querySelector("#inflationRate"),
 };
 
-bootstrap();
-
-function bootstrap() {
-  wireEvents();
-  render();
-  scheduleEquityRefresh();
-  void refreshEquityQuotes();
-  void refreshEquityNews();
-}
+initializeApp();
 
 function wireEvents() {
   elements.addAssetButton.addEventListener("click", () => {
